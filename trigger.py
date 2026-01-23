@@ -130,7 +130,7 @@ def inserir_no_banco(conn, dados_prontos):
         else:
             print(f"ERRO de Banco desconhecido: {e}")
 
-sincronizar_totens()
+
 
 if __name__ == "__main__":
     conn = None
@@ -153,6 +153,8 @@ if __name__ == "__main__":
                 print("Os dados chegaram, mas nenhum corresponde aos sensores mapeados (Pluviometria/Nível).")
         else:
             print("Nenhum dado retornado.")
+        
+        sincronizar_totens()
 
     except psycopg2.Error as e:
         print(f"ERRO GERAL de conexão com o banco: {e}")
