@@ -1,0 +1,9 @@
+services:
+  - type: cron
+    name: ih-alagou-worker
+    env: python
+    region: ohio
+    plan: starter
+    schedule: "*/5 * * * *" 
+    buildCommand: pip install -r requirements.txt
+    startCommand: python trigger.py
