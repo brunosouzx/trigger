@@ -6,6 +6,14 @@ from dateutil import parser
 from psycopg2.extras import execute_values
 from token_get import get_token
 from trigger_iha import sincronizar_totens
+import os
+from dotenv import load_dotenv
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
+
+# Pega a URL segura
+db_url = os.getenv("DATABASE_URL")
 
 # --- Configurações da API ---
 # Agora pegamos o estado todo, então não precisamos passar o 'codibge' vazio inicial
@@ -21,7 +29,6 @@ API_PARAMS = {
 }
 
 # --- Configurações do Banco ---
-db_url="postgresql://ihalagou_mq4l_user:1MK5i26pWskzRbjJZD4VK68JmHv3BGqH@dpg-d5pc847pm1nc73btfl50-a.virginia-postgres.render.com/ihalagou_mq4l"
 
 SENSOR_MAPPING = {
     10: "pluviometria", 330: "nivel_1", 340: "nivel_2",

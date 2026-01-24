@@ -3,9 +3,14 @@ import psycopg2
 from psycopg2.extras import execute_values
 from datetime import datetime
 import pytz
+import os
+from dotenv import load_dotenv
 
-# --- CONFIGURAÇÕES DO BANCO ---
-db_url="postgresql://ihalagou_mq4l_user:1MK5i26pWskzRbjJZD4VK68JmHv3BGqH@dpg-d5pc847pm1nc73btfl50-a.virginia-postgres.render.com/ihalagou_mq4l"
+# Carrega as variáveis do arquivo .env
+load_dotenv()
+
+# Pega a URL segura
+db_url = os.getenv("DATABASE_URL")
 
 TABLE_DESTINO = 'medicao_iha' 
 
