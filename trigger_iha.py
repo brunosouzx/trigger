@@ -19,7 +19,8 @@ MAPA_API_KEYS = {
     3228255: "VNTV6D3PJDIUWTUI", # IHA 1
     3212148: "KHWVXJ78F5FUBXEU", # IHA 2
     2998477: "47FQKQ61NWJTRLWS",  # IHA 3
-    3215410: "N56C6F6T7697DBF2"  # IHA 4
+    3215410: "N56C6F6T7697DBF2" , # IHA 4
+    3222304: "AZRC6XU0DMPNANK7"  # IHA 4
 }
 
 def sincronizar_totens():
@@ -43,6 +44,7 @@ def sincronizar_totens():
             
             # Verifica se é pluviômetro pelo nome (Ex: "Totem Pluvi 01")
             eh_pluviometro = "PLUVI" in nome_totem.upper()
+            eh_pep_pluviometro = "PEP" in nome_totem.upper()
 
             api_key = MAPA_API_KEYS.get(id_iha)
             
@@ -79,42 +81,52 @@ def sincronizar_totens():
                         continue 
 
                     # --- 2. VALOR (LÓGICA ESPECÍFICA) ---
-                    if eh_pluviometro:
+                    if eh_pep_pluviometro:
+                        # === NOVA LÓGICA DE PLUVIÔMETRO PEP (FIELD 3) ===
+                        # field3 = basculadas; cada basculada = 0.2 mm; NÃO subtrai 1
+                        if feed.get('field3'):
+                            try:
+                                basculadas = float(feed['field3'])
+                                milimetros = basculadas * 0.2
+                                milimetros = round(milimetros, 2)
+                                dados_para_inserir.append((id_iha, 'pluviometro', milimetros, data_hora_brasil))
+                            except ValueError:
+                                pass
+
+                    elif eh_pluviometro:
                         # === LÓGICA DE PLUVIÔMETRO (FIELD 2) ===
                         if feed.get('field2'):
                             try:
                                 basculadas = float(feed['field2'])
-                                
+
                                 # Regra 1: Subtrai 1 do contador bruto (se maior que 0)
                                 if basculadas > 0:
                                     basculadas = basculadas - 1
-                                
-                                # Regra 2: Converte basculadas em mm
-                                # Cada basculada = 0.2 mm de chuva
+
+                                # Regra 2: Converte basculadas em mm (0.2 mm por basculada)
                                 milimetros = basculadas * 0.2
-                                
-                                # Arredonda para 2 casas decimais para ficar bonito no banco (Ex: 0.40)
                                 milimetros = round(milimetros, 2)
-                                
+
                                 dados_para_inserir.append((id_iha, 'pluviometro', milimetros, data_hora_brasil))
                             except ValueError:
                                 pass
                     else:
                         # === LÓGICA DE NÍVEL DE RIO (FIELD 5 via FIELD 2) ===
-                        if feed.get('field2'): 
+                        if feed.get('field2'):
                             try:
                                 metros = float(feed['field5'])
                                 dados_para_inserir.append((id_iha, 'metros', metros, data_hora_brasil))
                             except (ValueError, TypeError):
-                                pass 
+                                pass
 
-                    # --- 3. BATERIA (FIELD 3) - Comum a todos ---
-                    if feed.get('field3'): 
+                    # --- 3. BATERIA (FIELD 3 por padrão; PEP usa FIELD 2) ---
+                    campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
+                    if feed.get(campo_bateria):
                         try:
-                            bateria = float(feed['field3'])
+                            bateria = float(feed[campo_bateria])
                             dados_para_inserir.append((id_iha, 'bateria', bateria, data_hora_brasil))
                         except (ValueError, TypeError):
-                            pass 
+                            pass
 
                 # --- 4. INSERÇÃO NO BANCO ---
                 if dados_para_inserir:
