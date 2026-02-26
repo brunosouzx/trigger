@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import os
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor # Importação adicionada
+from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
 db_url = os.getenv("DATABASE_URL")
@@ -34,7 +34,7 @@ def processar_unico_totem(totem):
     dados_extraidos = []
     
     try:
-        response = requests.get(url, timeout=10) # Adicionado timeout de segurança
+        response = requests.get(url, timeout=10)
         if response.status_code == 404:
             return []
 
@@ -42,7 +42,6 @@ def processar_unico_totem(totem):
         feeds = data.get('feeds', [])
 
         for feed in feeds:
-            # Lógica de extração de data, valor e bateria original mantida...
             try:
                 data_str = feed.get('created_at')
                 if not data_str: continue
@@ -59,7 +58,9 @@ def processar_unico_totem(totem):
                 if feed.get('field2'):
                     try:
                         basculadas = float(feed['field2'])
-                        if basculadas > 0: basculadas -= 2
+                        # Nova lógica: se maior que 0, subtrai 2 (mínimo 0)
+                        if basculadas > 0:
+                            basculadas = max(0.0, basculadas - 2.0)
                         dados_extraidos.append((id_iha, 'pluviometro', round(basculadas * 0.2, 2), data_hora_brasil))
                     except ValueError: pass
             else:
@@ -67,10 +68,10 @@ def processar_unico_totem(totem):
                     try: dados_extraidos.append((id_iha, 'metros', float(feed['field5']), data_hora_brasil))
                     except (ValueError, TypeError): pass
 
-            campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
-            if feed.get(campo_bateria):
-                try: dados_extraidos.append((id_iha, 'bateria', float(feed[campo_bateria]), data_hora_brasil))
-                except (ValueError, TypeError): pass
+                campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
+                if feed.get(campo_bateria):
+                    try: dados_extraidos.append((id_iha, 'bateria', float(feed[campo_bateria]), data_hora_brasil))
+                    except (ValueError, TypeError): pass
 
         return dados_extraidos
     except Exception as e:
@@ -90,13 +91,11 @@ def sincronizar_totens():
 
         todos_dados_para_inserir = []
         
-        # Faz até 10 requisições simultâneas
         with ThreadPoolExecutor(max_workers=10) as executor:
             resultados = executor.map(processar_unico_totem, totens)
             for resultado in resultados:
                 todos_dados_para_inserir.extend(resultado)
 
-        # Inserção em massa única no final
         if todos_dados_para_inserir:
             query = f"""
                 INSERT INTO {TABLE_DESTINO} (fk_id_iha, tipo_medicao, valor, data_hora)
