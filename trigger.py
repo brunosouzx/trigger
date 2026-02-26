@@ -1,171 +1,206 @@
 import requests
 import psycopg2
+import os
 import sys
 from datetime import datetime, timezone, timedelta
 from dateutil import parser
 from psycopg2.extras import execute_values
-from token_get import get_token
-from trigger_iha import sincronizar_totens
-import os
 from dotenv import load_dotenv
 
-# Carrega as variáveis do arquivo .env
+# Importa seus módulos auxiliares
+from token_get import get_tokens
+from trigger_iha import sincronizar_totens
+
+# Importa o thread para otimizar o codigo
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
 
-# Pega a URL segura
-db_url = os.getenv("DATABASE_URL")
+# --- Configurações ---
+API_ESTADO = "https://sws.cemaden.gov.br/PED/rest/pcds/pcds-dados-recentes"
+API_ACUMULADOS = "https://sws.cemaden.gov.br/PED/rest/pcds-acum/acumulados-recentes"
 
-# --- Configurações da API ---
-# Agora pegamos o estado todo, então não precisamos passar o 'codibge' vazio inicial
-API_URL = "https://sws.cemaden.gov.br/PED/rest/pcds/pcds-dados-recentes"
+LIMIT_REQ_POR_TOKEN = 12
+FUSO_BR = timezone(timedelta(hours=-3))
 
-# Pega o token dinamicamente do seu outro arquivo
-API_TOKEN = get_token()
-
-# MUDANÇA AQUI: Removemos o 'codibge' e deixamos fixo para PE
-API_PARAMS = {
-    'rede': '11',
-    'uf': 'PE' 
-}
-
-# --- Configurações do Banco ---
-
+# Mapeamento para a tabela de 'medicao' (Sensores de Estado)
 SENSOR_MAPPING = {
     10: "pluviometria", 330: "nivel_1", 340: "nivel_2",
     350: "nivel_3", 360: "nivel_4", 610: "nivel_5", 620: "nivel_6",
 }
-fuso_gmt_menos_3 = timezone(timedelta(hours=-3))
 
-def buscar_dados_estado_api(params):
-    """
-    Busca dados de TODAS as estações do estado configurado (PE).
-    """
-    print(f"Buscando dados RECENTES para o estado: {params['uf']}...")
-    headers = {'accept': 'application/json', 'token': API_TOKEN}
-    
-    try:
-        # A chamada agora é única e pode demorar um pouquinho mais para responder
-        # pois traz muito mais dados, mas é muito mais eficiente que o loop.
-        response = requests.get(API_URL, headers=headers, params=params)
-        
-        if response.status_code == 401:
-            print("ERRO DE API: Falha na autenticação. Verifique seu TOKEN.")
-            return []
-            
-        response.raise_for_status()
-        response_data = response.json()
+def buscar_ids_cidades(conn):
+    """Busca os IDs das cidades (que são os códigos IBGE)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM cidades")
+        return [row[0] for row in cur.fetchall()]
 
-        if response_data:
-            print(f" -> Sucesso! Recebidos {len(response_data)} registros do estado.")
-            return response_data
-        else:
-            print(" -> Nenhum dado recente encontrado para o estado.")
-            return []
-            
-    except requests.exceptions.RequestException as e:
-        print(f"ERRO ao chamar a API: {e}")
-        return []
-
-def processar_dados(raw_data_list):
-    """
-    Transforma os dados brutos da API no formato do banco.
-    """
+def processar_dados_estado(raw_data):
+    """Processa dados do endpoint de Estado (medicao)."""
     dados_para_inserir = []
-    
-    for medicao in raw_data_list:
+    for medicao in raw_data:
         try:
             sensor_id = medicao.get('id_sensor')
-            tipo_medicao = SENSOR_MAPPING.get(sensor_id)
+            tipo = SENSOR_MAPPING.get(sensor_id)
+            if not tipo: continue
             
-            # Se não for um sensor que nos interessa (chuva ou nível), pula
-            if tipo_medicao is None:
-                continue 
+            cod = medicao.get('codestacao')
+            val = medicao.get('valor')
+            d_str = medicao.get('datahora')
             
-            codestacao = medicao.get('codestacao')
-            valor = medicao.get('valor')
-            data_str = medicao.get('datahora')
-            
-            if not codestacao or valor is None or not data_str:
-                continue
+            if not cod or val is None or not d_str: continue
 
-            # Conversão de fuso horário
-            data_utc_obj = parser.parse(data_str).replace(tzinfo=timezone.utc)
-            data_gmt3_obj = data_utc_obj.astimezone(fuso_gmt_menos_3)
+            dt_utc = parser.parse(d_str).replace(tzinfo=timezone.utc)
+            dt_br = dt_utc.astimezone(FUSO_BR)
             
-            dados_para_inserir.append((
-                codestacao, tipo_medicao, valor, data_gmt3_obj
-            ))
-        except (KeyError, TypeError, parser.ParserError) as e:
-            continue 
-            
+            dados_para_inserir.append((cod, tipo, val, dt_br))
+        except: continue
     return dados_para_inserir
 
-def inserir_no_banco(conn, dados_prontos):
-    """
-    Insere os dados no banco usando Bulk Insert.
-    """
-    if not dados_prontos:
-        print("Nenhum dado válido para inserir após o processamento.")
-        return
+def inserir_estado(conn, dados):
+    if not dados: return
+    with conn.cursor() as cur:
+        q = """INSERT INTO cemadem_medicao (fk_codestacao, tipo_medicao, valor, data)
+               VALUES %s ON CONFLICT ON CONSTRAINT medicao_unica DO NOTHING"""
+        execute_values(cur, q, dados)
+        conn.commit()
+    print(f" [ESTADO] {len(dados)} medições inseridas.")
 
+def inserir_acumulados(conn, dados):
+    if not dados: return
+    with conn.cursor() as cur:
+        q = """INSERT INTO cemadem_acumulados 
+               (fk_codestacao, fk_id_cidade, acc_1h, acc_3h, acc_6h, acc_12h, 
+                acc_24h, acc_48h, acc_72h, acc_96h, acc_120h, data_hora)
+               VALUES %s 
+               ON CONFLICT (fk_id_cidade, fk_codestacao, data_hora) DO NOTHING"""
+        execute_values(cur, q, dados)
+        conn.commit()
+
+def requisitar_cidade_acumulado(cod_ibge, token_ativo):
+    """Função auxiliar isolada para fazer a requisição de uma cidade em paralelo."""
+    h = {'accept': 'application/json', 'token': token_ativo}
+    p = {'codibge': cod_ibge}
+    
     try:
-        with conn.cursor() as cur:
-            # SQL Query
-            query = """
-                INSERT INTO cemadem_medicao 
-                    (fk_codestacao, tipo_medicao, valor, data)
-                VALUES %s
-                ON CONFLICT ON CONSTRAINT medicao_unica DO NOTHING; 
-            """
-            
-            # execute_values é muito rápido para muitos dados
-            execute_values(cur, query, dados_prontos)
-            conn.commit()
-            
-            print(f"Operação no banco concluída! {cur.rowcount} novos registros inseridos.")
-
-    except psycopg2.Error as e:
-        if conn: conn.rollback()
-        
-        # Tratamento de erro específico
-        if "constraint \"medicao_unica\" does not exist" in str(e):
-            print("ERRO CRÍTICO: A constraint 'medicao_unica' (para evitar duplicatas) não existe no banco.")
-        elif e.pgcode == '23503': # Erro de Foreign Key
-            print("ERRO DE CHAVE ESTRANGEIRA:")
-            print("Você está tentando inserir medições de estações que NÃO estão cadastradas na tabela 'cemadem_estacao'.")
-            print("Dica: Rode o script de atualização de estações (o anterior) para garantir que tem todas as estações de PE cadastradas.")
+        r = requests.get(API_ACUMULADOS, headers=h, params=p, timeout=10)
+        if r.status_code == 200:
+            return cod_ibge, r.json(), None
         else:
-            print(f"ERRO de Banco desconhecido: {e}")
+            return cod_ibge, None, r.status_code
+    except Exception as e:
+        return cod_ibge, None, str(e)
 
-
-
-if __name__ == "__main__":
+# --- FUNÇÃO PRINCIPAL ---
+def main():
     conn = None
     try:
-        # 1. Conecta ao Banco
-        conn = psycopg2.connect(db_url)
+        # 1. Preparação
+        conn = psycopg2.connect(DB_URL)
+        tokens = get_tokens()
         
-        # 2. Busca dados da API (Agora uma única chamada para PE)
-        todos_os_dados_brutos = buscar_dados_estado_api(API_PARAMS)
-        
-        # 3. Processa e Insere
-        if todos_os_dados_brutos:
-            print(f"Iniciando processamento...")
-            dados_processados = processar_dados(todos_os_dados_brutos)
+        if not tokens:
+            print("CRÍTICO: Sem tokens disponíveis.")
+            return
+
+        # Variáveis de Controle de Token (Compartilhadas)
+        idx_token = 0
+        reqs_atuais = 0
+        token_ativo = tokens[idx_token]
+
+        print(f"\n=== 1. PROCESSANDO DADOS GERAIS DO ESTADO (PE) ===")
+        # -----------------------------------------------------------
+        # Faz 1 requisição para pegar o estado todo
+        # -----------------------------------------------------------
+        try:
+            h = {'accept': 'application/json', 'token': token_ativo}
+            p = {'rede': '11', 'uf': 'PE'}
             
-            if dados_processados:
-                print(f"Identificados {len(dados_processados)} medições válidas (chuva/nível). Inserindo...")
-                inserir_no_banco(conn, dados_processados)
+            resp = requests.get(API_ESTADO, headers=h, params=p, timeout=15)
+            reqs_atuais += 1 # CONTA +1 REQUISIÇÃO
+            
+            if resp.status_code == 200:
+                dados_proc = processar_dados_estado(resp.json())
+                inserir_estado(conn, dados_proc)
             else:
-                print("Os dados chegaram, mas nenhum corresponde aos sensores mapeados (Pluviometria/Nível).")
-        else:
-            print("Nenhum dado retornado.")
+                print(f"Erro Estado: {resp.status_code}")
+        except Exception as e:
+            print(f"Erro Req Estado: {e}")
+
         
+        print(f"\n=== 2. PROCESSANDO ACUMULADOS POR CIDADE ===")
+        # -----------------------------------------------------------
+        # Itera sobre as cidades usando paralelismo e lote de inserção
+        # -----------------------------------------------------------
+        cidades_ids = buscar_ids_cidades(conn)
+        
+        # 2.1 Pré-distribuir tokens para as cidades
+        tarefas_cidades = []
+        for cod_ibge in cidades_ids:
+            if reqs_atuais >= LIMIT_REQ_POR_TOKEN:
+                print(f" >> Token {idx_token+1} esgotado. Trocando...")
+                idx_token += 1
+                if idx_token >= len(tokens):
+                    print("!!! SEM MAIS TOKENS !!! Parando alocação de acumulados.")
+                    break
+                token_ativo = tokens[idx_token]
+                reqs_atuais = 0 # Reseta para o novo token
+            
+            tarefas_cidades.append((cod_ibge, token_ativo))
+            reqs_atuais += 1
+
+        batch_geral = []
+        cidades_sucesso = 0
+        
+        # 2.2 Disparar as requisições em paralelo (10 workers simultâneos)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futuros = [executor.submit(requisitar_cidade_acumulado, cod, tok) for cod, tok in tarefas_cidades]
+            
+            for futuro in as_completed(futuros):
+                cod_ibge, l_dados, erro = futuro.result()
+                
+                if erro:
+                    print(f" -> Cidade {cod_ibge}: Erro API {erro}")
+                    continue
+                    
+                if l_dados:
+                    cidades_sucesso += 1
+                    for d in l_dados:
+                        c_est = d.get('codestacao')
+                        d_hora = d.get('datahora')
+                        if c_est and d_hora:
+                            # Parse data
+                            try:
+                                dto = parser.parse(d_hora)
+                                if not dto.tzinfo: dto = dto.replace(tzinfo=timezone.utc)
+                                dto = dto.astimezone(FUSO_BR)
+                            except: dto = datetime.now()
+
+                            batch_geral.append((
+                                c_est, cod_ibge,
+                                d.get('acc1hr',0), d.get('acc3hr',0), d.get('acc6hr',0),
+                                d.get('acc12hr',0), d.get('acc24hr',0), d.get('acc48hr',0),
+                                d.get('acc72hr',0), d.get('acc96hr',0), d.get('acc120hr',0),
+                                dto
+                            ))
+
+        # 2.3 Única inserção de dados no banco (Batch Insert)
+        if batch_geral:
+            inserir_acumulados(conn, batch_geral)
+            print(f" -> Sucesso nas requisições de {cidades_sucesso} cidades.")
+            print(f"Total Acumulados Inseridos: {len(batch_geral)}")
+        else:
+            print("Total Acumulados Inseridos: 0 (Nenhum dado novo encontrado).")
+
+        print(f"\n=== 3. SINCRONIZANDO TOTENS (IHA) ===")
+        # Lembre-se de usar também a versão otimizada do trigger_iha.py que te enviei antes!
         sincronizar_totens()
 
-    except psycopg2.Error as e:
-        print(f"ERRO GERAL de conexão com o banco: {e}")
+    except Exception as e_geral:
+        print(f"ERRO GERAL NO SCRIPT: {e_geral}")
     finally:
-        if conn:
-            conn.close()
-            print("Conexão encerrada.")
+        if conn: conn.close()
+
+if __name__ == "__main__":
+    main()

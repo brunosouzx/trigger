@@ -5,23 +5,77 @@ from datetime import datetime
 import pytz
 import os
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor # Importação adicionada
 
-# Carrega as variáveis do arquivo .env
 load_dotenv()
-
-# Pega a URL segura
 db_url = os.getenv("DATABASE_URL")
+TABLE_DESTINO = 'medicao_iha'
 
-TABLE_DESTINO = 'medicao_iha' 
-
-# --- MAPEAMENTO DE IDs PARA API KEYS ---
 MAPA_API_KEYS = {
-    3228255: "VNTV6D3PJDIUWTUI", # IHA 1
-    3212148: "KHWVXJ78F5FUBXEU", # IHA 2
-    2998477: "47FQKQ61NWJTRLWS",  # IHA 3
-    3215410: "N56C6F6T7697DBF2" , # IHA 4
-    3222304: "AZRC6XU0DMPNANK7"  # IHA 4
+    3228255: "VNTV6D3PJDIUWTUI", 
+    3212148: "KHWVXJ78F5FUBXEU", 
+    2998477: "47FQKQ61NWJTRLWS",  
+    3215410: "N56C6F6T7697DBF2" , 
+    3222304: "AZRC6XU0DMPNANK7"  
 }
+
+def processar_unico_totem(totem):
+    """Função isolada para processar a requisição de um único totem."""
+    id_iha, nome_totem = totem
+    eh_pluviometro = "PLUVI" in nome_totem.upper()
+    eh_pep_pluviometro = "PEP" in nome_totem.upper()
+    api_key = MAPA_API_KEYS.get(id_iha)
+    
+    if not api_key:
+        print(f"⚠️ AVISO: Totem '{nome_totem}' (ID {id_iha}) sem API Key. Pulando...")
+        return []
+
+    url = f"https://api.thingspeak.com/channels/{id_iha}/feeds.json?api_key={api_key}&results=12"
+    dados_extraidos = []
+    
+    try:
+        response = requests.get(url, timeout=10) # Adicionado timeout de segurança
+        if response.status_code == 404:
+            return []
+
+        data = response.json()
+        feeds = data.get('feeds', [])
+
+        for feed in feeds:
+            # Lógica de extração de data, valor e bateria original mantida...
+            try:
+                data_str = feed.get('created_at')
+                if not data_str: continue
+                dt_utc = datetime.strptime(data_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=pytz.utc)
+                fuso_brasil = pytz.timezone('America/Sao_Paulo')
+                data_hora_brasil = dt_utc.astimezone(fuso_brasil)
+            except (ValueError, TypeError): continue 
+
+            if eh_pep_pluviometro:
+                if feed.get('field3'):
+                    try: dados_extraidos.append((id_iha, 'pluviometro', round(float(feed['field3']) * 0.2, 2), data_hora_brasil))
+                    except ValueError: pass
+            elif eh_pluviometro:
+                if feed.get('field2'):
+                    try:
+                        basculadas = float(feed['field2'])
+                        if basculadas > 0: basculadas -= 2
+                        dados_extraidos.append((id_iha, 'pluviometro', round(basculadas * 0.2, 2), data_hora_brasil))
+                    except ValueError: pass
+            else:
+                if feed.get('field2'):
+                    try: dados_extraidos.append((id_iha, 'metros', float(feed['field5']), data_hora_brasil))
+                    except (ValueError, TypeError): pass
+
+            campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
+            if feed.get(campo_bateria):
+                try: dados_extraidos.append((id_iha, 'bateria', float(feed[campo_bateria]), data_hora_brasil))
+                except (ValueError, TypeError): pass
+
+        return dados_extraidos
+    except Exception as e:
+        print(f"Erro ao processar {nome_totem}: {e}")
+        return []
 
 def sincronizar_totens():
     conn = None
@@ -29,121 +83,29 @@ def sincronizar_totens():
         conn = psycopg2.connect(db_url)
         cursor = conn.cursor()
 
-        print("Buscando totens cadastrados no banco...")
-        # Busca ID e Nome para identificar quem é PLUVI
         cursor.execute("SELECT id, nome FROM iha_totem WHERE ativo = TRUE")
         totens = cursor.fetchall()
 
-        if not totens:
-            print("Nenhum totem ativo encontrado no banco de dados.")
-            return
+        if not totens: return
 
-        for totem in totens:
-            id_iha = totem[0]
-            nome_totem = totem[1]
-            
-            # Verifica se é pluviômetro pelo nome (Ex: "Totem Pluvi 01")
-            eh_pluviometro = "PLUVI" in nome_totem.upper()
-            eh_pep_pluviometro = "PEP" in nome_totem.upper()
+        todos_dados_para_inserir = []
+        
+        # Faz até 10 requisições simultâneas
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            resultados = executor.map(processar_unico_totem, totens)
+            for resultado in resultados:
+                todos_dados_para_inserir.extend(resultado)
 
-            api_key = MAPA_API_KEYS.get(id_iha)
-            
-            if not api_key:
-                print(f"⚠️ AVISO: Totem '{nome_totem}' (ID {id_iha}) sem API Key. Pulando...")
-                continue
-
-            url = f"https://api.thingspeak.com/channels/{id_iha}/feeds.json?api_key={api_key}&results=12"
-            
-            # Exibe no log qual lógic{id_iha}) [{tipo_logica}] ---")
-            
-            try:
-                response = requests.get(url)
-                if response.status_code == 404:
-                    print(f"Erro 404: Canal {id_iha} não encontrado.")
-                    continue
-
-                data = response.json()
-                feeds = data.get('feeds', [])
-
-                dados_para_inserir = []
-
-                for feed in feeds:
-                    # --- 1. DATA (created_at) ---
-                    try:
-                        data_str = feed.get('created_at')
-                        if not data_str: continue
-
-                        dt_utc = datetime.strptime(data_str, "%Y-%m-%dT%H:%M:%SZ")
-                        dt_utc = dt_utc.replace(tzinfo=pytz.utc)
-                        fuso_brasil = pytz.timezone('America/Sao_Paulo')
-                        data_hora_brasil = dt_utc.astimezone(fuso_brasil)
-                    except (ValueError, TypeError):
-                        continue 
-
-                    # --- 2. VALOR (LÓGICA ESPECÍFICA) ---
-                    if eh_pep_pluviometro:
-                        # === NOVA LÓGICA DE PLUVIÔMETRO PEP (FIELD 3) ===
-                        # field3 = basculadas; cada basculada = 0.2 mm; NÃO subtrai 1
-                        if feed.get('field3'):
-                            try:
-                                basculadas = float(feed['field3'])
-                                milimetros = basculadas * 0.2
-                                milimetros = round(milimetros, 2)
-                                dados_para_inserir.append((id_iha, 'pluviometro', milimetros, data_hora_brasil))
-                            except ValueError:
-                                pass
-
-                    elif eh_pluviometro:
-                        # === LÓGICA DE PLUVIÔMETRO (FIELD 2) ===
-                        if feed.get('field2'):
-                            try:
-                                basculadas = float(feed['field2'])
-
-                                # Regra 1: Subtrai 1 do contador bruto (se maior que 0)
-                                if basculadas > 0:
-                                    basculadas = basculadas - 1
-
-                                # Regra 2: Converte basculadas em mm (0.2 mm por basculada)
-                                milimetros = basculadas * 0.2
-                                milimetros = round(milimetros, 2)
-
-                                dados_para_inserir.append((id_iha, 'pluviometro', milimetros, data_hora_brasil))
-                            except ValueError:
-                                pass
-                    else:
-                        # === LÓGICA DE NÍVEL DE RIO (FIELD 5 via FIELD 2) ===
-                        if feed.get('field2'):
-                            try:
-                                metros = float(feed['field5'])
-                                dados_para_inserir.append((id_iha, 'metros', metros, data_hora_brasil))
-                            except (ValueError, TypeError):
-                                pass
-
-                    # --- 3. BATERIA (FIELD 3 por padrão; PEP usa FIELD 2) ---
-                    campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
-                    if feed.get(campo_bateria):
-                        try:
-                            bateria = float(feed[campo_bateria])
-                            dados_para_inserir.append((id_iha, 'bateria', bateria, data_hora_brasil))
-                        except (ValueError, TypeError):
-                            pass
-
-                # --- 4. INSERÇÃO NO BANCO ---
-                if dados_para_inserir:
-                    query = f"""
-                        INSERT INTO {TABLE_DESTINO} (fk_id_iha, tipo_medicao, valor, data_hora)
-                        VALUES %s
-                        ON CONFLICT (fk_id_iha, tipo_medicao, data_hora) DO NOTHING
-                    """
-                    execute_values(cursor, query, dados_para_inserir)
-                    conn.commit()
-                    print(f" -> Sucesso! {len(dados_para_inserir)} registros inseridos.")
-                else:
-                    print(f" -> Nenhum dado novo.")
-
-            except Exception as e_totem:
-                print(f"Erro ao processar {nome_totem}: {e_totem}")
-                conn.rollback()
+        # Inserção em massa única no final
+        if todos_dados_para_inserir:
+            query = f"""
+                INSERT INTO {TABLE_DESTINO} (fk_id_iha, tipo_medicao, valor, data_hora)
+                VALUES %s
+                ON CONFLICT (fk_id_iha, tipo_medicao, data_hora) DO NOTHING
+            """
+            execute_values(cursor, query, todos_dados_para_inserir)
+            conn.commit()
+            print(f" -> Sucesso! {len(todos_dados_para_inserir)} registros inseridos no IHA.")
 
     except psycopg2.Error as e:
         print(f"Erro geral de Banco: {e}")
@@ -151,6 +113,3 @@ def sincronizar_totens():
         if conn:
             cursor.close()
             conn.close()
-
-if __name__ == "__main__":
-    sincronizar_totens()
