@@ -92,6 +92,19 @@ def requisitar_cidade_acumulado(cod_ibge, token_ativo):
     except Exception as e:
         return cod_ibge, None, str(e)
 
+def chamar_atualizacao_status_banco(conn):
+    """Chama a função armazenada no banco de dados para atualizar o status das estações."""
+    try:
+        with conn.cursor() as cur:
+            # Chama a função exata que você criou no PostgreSQL
+            cur.execute("SELECT public.atualizar_status_estacoes();")
+            conn.commit()
+            print(" [ESTAÇÕES] Função de atualização de status executada com sucesso no banco.")
+    except Exception as e:
+        print(f" [ERRO] Falha ao chamar a função de status no banco: {e}")
+        conn.rollback()
+
+
 # --- FUNÇÃO PRINCIPAL ---
 def main():
     conn = None
@@ -196,6 +209,20 @@ def main():
         print(f"\n=== 3. SINCRONIZANDO TOTENS (IHA) ===")
         # Lembre-se de usar também a versão otimizada do trigger_iha.py que te enviei antes!
         sincronizar_totens()
+        # ==========================================================
+        # 4. GATILHO PARA A FUNÇÃO DE STATUS (1x ao dia)
+        # ==========================================================
+        print(f"\n=== 4. VERIFICANDO STATUS DAS ESTAÇÕES ===")
+        
+        # Pega a hora atual no fuso do Brasil que você já definiu no topo do arquivo
+        agora = datetime.now(FUSO_BR)
+        
+        # Como o worker roda a cada 5 min, ele só entra aqui na execução das 03:00
+        if agora.hour == 1 and agora.minute < 5:
+            print(" -> Horário de manutenção alcançado (03:00). Acionando o banco de dados...")
+            chamar_atualizacao_status_banco(conn)
+        else:
+            print(f" -> Fora do horário de manutenção (Agora: {agora.strftime('%H:%M')}). Ignorando.")
 
     except Exception as e_geral:
         print(f"ERRO GERAL NO SCRIPT: {e_geral}")

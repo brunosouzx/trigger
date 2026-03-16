@@ -20,7 +20,6 @@ MAPA_API_KEYS = {
 }
 
 def processar_unico_totem(totem):
-    """Função isolada para processar a requisição de um único totem."""
     id_iha, nome_totem = totem
     eh_pluviometro = "PLUVI" in nome_totem.upper()
     eh_pep_pluviometro = "PEP" in nome_totem.upper()
@@ -58,7 +57,6 @@ def processar_unico_totem(totem):
                 if feed.get('field2'):
                     try:
                         basculadas = float(feed['field2'])
-                        # Nova lógica: se maior que 0, subtrai 2 (mínimo 0)
                         if basculadas > 0:
                             basculadas = max(0.0, basculadas - 2.0)
                         dados_extraidos.append((id_iha, 'pluviometro', round(basculadas * 0.2, 2), data_hora_brasil))
@@ -70,6 +68,7 @@ def processar_unico_totem(totem):
 
                 campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
                 if feed.get(campo_bateria):
+                    # O script manda 'bateria', mas o DB vai ignorar nas buscas graças à nova arquitetura!
                     try: dados_extraidos.append((id_iha, 'bateria', float(feed[campo_bateria]), data_hora_brasil))
                     except (ValueError, TypeError): pass
 
@@ -80,6 +79,7 @@ def processar_unico_totem(totem):
 
 def sincronizar_totens():
     conn = None
+    cursor = None
     try:
         conn = psycopg2.connect(db_url)
         cursor = conn.cursor()
@@ -107,8 +107,7 @@ def sincronizar_totens():
             print(f" -> Sucesso! {len(todos_dados_para_inserir)} registros inseridos no IHA.")
 
     except psycopg2.Error as e:
-        print(f"Erro geral de Banco: {e}")
+        print(f"Erro geral de Banco no IHA: {e}")
     finally:
-        if conn:
-            cursor.close()
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
