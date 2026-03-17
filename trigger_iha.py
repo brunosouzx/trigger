@@ -43,11 +43,11 @@ MAPA_API_KEYS = {
 IDS_RECIFE_BATERIA = [3236623, 3236624, 3236625, 3236626, 3236622]
 
 ID_OLINDA_HS = 2998477
-IDS_HS_COM_DEFEITO = [2998478, 3215410, 3215411, 3215438] # Sapucaia removido daqui
+IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
 IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409] # Caixa d'agua, Tabajara, Sapucaia
-IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] # Camaragibe 1 e 2, Sao Lourenço 1 e 2
+IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317,2998478,3215410,3215411, 3215438] # Camaragibe 1 e 2, Sao Lourenço 1 e 2
 
 def processar_unico_totem(totem):
     id_iha, nome_totem = totem
