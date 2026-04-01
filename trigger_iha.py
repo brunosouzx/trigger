@@ -36,7 +36,8 @@ MAPA_API_KEYS = {
     3222305: "NI1YEOI1HKOWAIDV", # Pluviometro Camaragibe 1
     3222315: "TVQLECYG30EACWQH", # Pluviometro Camaragibe 2
     3222318: "T0597F200WR6LHN7", # Pluviometro Sao Lourenço 1
-    3222317: "7OU79BTK1C24KCVV"  # Pluviometro Sao Lourenço 2
+    3222317: "7OU79BTK1C24KCVV",  # Pluviometro Sao Lourenço 2
+    3222375: "QUQ8VV7XEDOC9EPI"  # Muribeca Jaboatão
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
