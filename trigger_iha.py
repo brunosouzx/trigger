@@ -36,8 +36,11 @@ MAPA_API_KEYS = {
     3222305: "NI1YEOI1HKOWAIDV", # Pluviometro Camaragibe 1
     3222315: "TVQLECYG30EACWQH", # Pluviometro Camaragibe 2
     3222318: "T0597F200WR6LHN7", # Pluviometro Sao Lourenço 1
-    3222317: "7OU79BTK1C24KCVV",  # Pluviometro Sao Lourenço 2
-    3222375: "QUQ8VV7XEDOC9EPI"  # Muribeca Jaboatão
+    3222317: "7OU79BTK1C24KCVV", # Pluviometro Sao Lourenço 2
+    3222375: "QUQ8VV7XEDOC9EPI", # Muribeca Jaboatão
+    3222378: "PFZC7PABO03WTLRU", # itamaraca
+    3222377: "QT07N68TVSA6RSOV", # cabo
+    3222380: "S7B09IX019DET4CT"  # moreno
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
@@ -47,8 +50,8 @@ ID_OLINDA_HS = 2998477
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
-IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409] # Caixa d'agua, Tabajara, Sapucaia
-IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317,2998478,3215410,3215411, 3215438] # Camaragibe 1 e 2, Sao Lourenço 1 e 2
+IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409,2998478,3215411,3222373,3215410, 3215438] # Caixa d'agua, Tabajara, Sapucaia
+IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] # Camaragibe 1 e 2, Sao Lourenço 1 e 2
 
 def processar_unico_totem(totem):
     id_iha, nome_totem = totem
@@ -68,7 +71,7 @@ def processar_unico_totem(totem):
         return []
 
     # Faz a requisição usando o canal_thingspeak
-    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=12"
+    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=2000"
     dados_extraidos = []
     
     try:
