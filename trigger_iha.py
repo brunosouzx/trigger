@@ -71,7 +71,7 @@ def processar_unico_totem(totem):
         return []
 
     # Faz a requisição usando o canal_thingspeak
-    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=2000"
+    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=6"
     dados_extraidos = []
     
     try:
