@@ -32,7 +32,8 @@ MAPA_API_KEYS = {
     3222368: "G4GWVTCQXFP2DYF6", # Desafios - Paulista
     3222371: "PSF02M46K19VIXHP", # Desafios - Igarassu
     3222370: "7M6C3OWKLP2MZUXL", # Desafios - Itapissuma
-    3222373: "AEBM9WPHAQ1F81OS", # Desafios - Camaragibe (E São Lourenço)
+    3222372: "XJQW4ORED0H4LCZK", # "Santa Terezinha - Camaragibe - PEN"
+    3222373: "AEBM9WPHAQ1F81OS", # "Nova Tiúma - Sao Lourenco da Mata - PEN"
     3222305: "NI1YEOI1HKOWAIDV", # Pluviometro Camaragibe 1
     3222315: "TVQLECYG30EACWQH", # Pluviometro Camaragibe 2
     3222318: "T0597F200WR6LHN7", # Pluviometro Sao Lourenço 1
@@ -50,7 +51,7 @@ ID_OLINDA_HS = 2998477
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
-IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409,2998478,3215411,3222373,3215410, 3215438] # Caixa d'agua, Tabajara, Sapucaia
+IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409,2998478,3215411,3215410, 3215438,3222373,3222372] # Caixa d'agua, Tabajara, Sapucaia caso precise ,3222373
 IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] # Camaragibe 1 e 2, Sao Lourenço 1 e 2
 
 def processar_unico_totem(totem):
@@ -61,8 +62,8 @@ def processar_unico_totem(totem):
     # --- REDIRECIONAMENTO DE CANAL ---
     canal_thingspeak = id_iha
     # Se o ID for o fictício de São Lourenço, puxa os dados do canal de Camaragibe
-    if id_iha == 3212373: 
-        canal_thingspeak = 3222373
+    #if id_iha == 3212373: 
+    #    canal_thingspeak = 3222373
 
     api_key = MAPA_API_KEYS.get(canal_thingspeak)
     
