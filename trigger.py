@@ -2,7 +2,7 @@ import requests
 import psycopg2
 import os
 import sys
-#import asyncio # <-- IMPORTANTE: Adicionado para rodar o Adafruit
+import asyncio # <-- IMPORTANTE: Adicionado para rodar o Adafruit
 from datetime import datetime, timezone, timedelta
 from dateutil import parser
 from psycopg2.extras import execute_values
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 # Importa seus módulos auxiliares
 from token_get import get_tokens
 from trigger_iha import sincronizar_totens
-#from trigger_adafruit import sincronizar_adafruit # <-- IMPORTANTE: Importa o Adafruit
+from trigger_adafruit import sincronizar_adafruit # <-- IMPORTANTE: Importa o Adafruit
 
 # Importa o thread para otimizar o codigo
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -216,7 +216,7 @@ def main():
         # ==========================================================
         print(f"\n=== 3.1 SINCRONIZANDO TOTENS (IHA / ADAFRUIT) ===")
         # Executa a função assíncrona do arquivo trigger_adafruit.py
-        #asyncio.run(sincronizar_adafruit())
+        asyncio.run(sincronizar_adafruit())
 
         # ==========================================================
         # 4. GATILHO PARA A FUNÇÃO DE STATUS (1x ao dia)

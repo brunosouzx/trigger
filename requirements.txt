@@ -5,3 +5,4 @@ requests
 gunicorn
 python-dateutil
 pytz
+aiohttp
