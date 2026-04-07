@@ -41,7 +41,11 @@ MAPA_API_KEYS = {
     3222375: "QUQ8VV7XEDOC9EPI", # Muribeca Jaboatão
     3222378: "PFZC7PABO03WTLRU", # itamaraca
     3222377: "QT07N68TVSA6RSOV", # cabo
-    3222380: "S7B09IX019DET4CT"  # moreno
+    3222380: "S7B09IX019DET4CT", # moreno
+    3222328: "ZYOXK1D6MMHX6E67", # jaboatao 2
+    3222338: "T0Z8H27TN4MWCY62", # jaboatão 3
+    3222329: "YI8RPF84YG919BD6"
+
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
@@ -96,9 +100,9 @@ def processar_unico_totem(totem):
             if eh_pep_pluviometro:
                 if id_iha in IDS_FORCAR_ZERO_PLUVI:
                     dados_extraidos.append((id_iha, 'pluviometro', 0.0, data_hora_brasil))
-                elif feed.get('field3'):
+                elif feed.get('field4'):
                     try: 
-                        valor = float(feed['field3']) * 0.2
+                        valor = float(feed['field4']) * 0.2
                         valor = max(0.0, valor)
                         dados_extraidos.append((id_iha, 'pluviometro', round(valor, 2), data_hora_brasil))
                     except ValueError: pass
@@ -142,9 +146,9 @@ def processar_unico_totem(totem):
                         except (ValueError, TypeError): pass
 
                 # Bateria (O processamento da bateria continua igual, não é forçado a zero)
-                campo_bateria = 'field2' if eh_pep_pluviometro else 'field3'
-                if feed.get('field2') and not eh_pep_pluviometro and not eh_pluviometro:
-                    campo_bateria = 'field2'
+                campo_bateria = 'field3' if eh_pep_pluviometro else 'field3'
+                if feed.get('field3') and not eh_pep_pluviometro and not eh_pluviometro:
+                    campo_bateria = 'field3'
                     
                 if feed.get(campo_bateria):
                     try: 
