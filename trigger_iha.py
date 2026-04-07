@@ -44,19 +44,20 @@ MAPA_API_KEYS = {
     3222380: "S7B09IX019DET4CT", # moreno
     3222328: "ZYOXK1D6MMHX6E67", # jaboatao 2
     3222338: "T0Z8H27TN4MWCY62", # jaboatão 3
-    3222329: "YI8RPF84YG919BD6"
-
+    3222329: "YI8RPF84YG919BD6"  # jaboatão 1
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
 IDS_RECIFE_BATERIA = [3236623, 3236624, 3236625, 3236626, 3236622]
 
-ID_OLINDA_HS = 2998477
+# Lista de sensores que precisam corrigir o valor do HS pelo Field4
+IDS_CORRECAO_HS = [2998477,3215410] # Adicione os próximos IDs separados por vírgula aqui
+
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
-IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409,2998478,3215411,3215410, 3215438,3222373,3222372] # Caixa d'agua, Tabajara, Sapucaia caso precise ,3222373
-IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] # Camaragibe 1 e 2, Sao Lourenço 1 e 2
+IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409, 2998478, 3215411, 3215438, 3222373, 3222372]
+IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] 
 
 def processar_unico_totem(totem):
     id_iha, nome_totem = totem
@@ -65,9 +66,6 @@ def processar_unico_totem(totem):
     
     # --- REDIRECIONAMENTO DE CANAL ---
     canal_thingspeak = id_iha
-    # Se o ID for o fictício de São Lourenço, puxa os dados do canal de Camaragibe
-    #if id_iha == 3212373: 
-    #    canal_thingspeak = 3222373
 
     api_key = MAPA_API_KEYS.get(canal_thingspeak)
     
@@ -127,7 +125,7 @@ def processar_unico_totem(totem):
                 if id_iha in IDS_FORCAR_ZERO_NIVEL:
                     # Força diretamente o 0.0 sem fazer cálculos
                     dados_extraidos.append((id_iha, 'metros', 0.0, data_hora_brasil))
-                elif id_iha == ID_OLINDA_HS:
+                elif id_iha in IDS_CORRECAO_HS:  # <--- MUDANÇA AQUI (AGORA VERIFICA SE ESTÁ NA LISTA)
                     if feed.get('field4'):
                         try:
                             hs_raw = float(feed['field4'])

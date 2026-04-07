@@ -13,7 +13,7 @@ db_url = os.getenv("DATABASE_URL")
 TABLE_DESTINO = 'medicao_iha'
 
 # --- CONFIGURAÇÃO ADAFRUIT ---
-AIO_KEY = "aio_aKHj49Tf2cjLmMAbbrvze61l9Mrx"
+AIO_KEY = ""
 USERNAME = "IHA"
 GRUPO_URL = "https://io.adafruit.com/api/v2/IHA/groups/iha0006"
 
