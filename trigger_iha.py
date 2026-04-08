@@ -28,7 +28,7 @@ MAPA_API_KEYS = {
     3236625: "8CSHIR09NI27R0MT", # Sapo Nu
     3236626: "13MVTDKVUALHOQRV", # Coripos
     3236622: "RUAYNA7D695IYTDM", # Jardim Sao Paulo
-    3222367: "LITPGF7XE4KQN436", # Desafios - Olinda
+    3222367: "LITPGF7XE4KQN436", # Desafios - Olinda passarinho
     3222368: "G4GWVTCQXFP2DYF6", # Desafios - Paulista
     3222371: "PSF02M46K19VIXHP", # Desafios - Igarassu
     3222370: "7M6C3OWKLP2MZUXL", # Desafios - Itapissuma
@@ -56,7 +56,7 @@ IDS_CORRECAO_HS = [2998477,3215410] # Adicione os próximos IDs separados por v�
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
-IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409, 2998478, 3215411, 3215438, 3222373, 3222372]
+IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409, 2998478, 3215411, 3215438, 3222373, 3222372,3222367]
 IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] 
 
 def processar_unico_totem(totem):
