@@ -13,9 +13,9 @@ TABLE_DESTINO = 'medicao_iha'
 
 # --- CONFIGURAÇÃO DE CHANNELS E REGRAS ---
 MAPA_API_KEYS = {
-    3228255: "VNTV6D3PJDIUWTUI", 
-    3212148: "KHWVXJ78F5FUBXEU", 
-    3222304: "AZRC6XU0DMPNANK7",
+    3228255: "VNTV6D3PJDIUWTUI", #ihapen petro 
+    3212148: "KHWVXJ78F5FUBXEU", # pluviometro petrolina
+    3222304: "AZRC6XU0DMPNANK7", # pluviometro olinda
     2998477: "47FQKQ61NWJTRLWS", # Olinda Caixa d'água
     2998478: "DEE7HH658UTUCFY8", # Jardim Atlântico
     3215410: "N56C6F6T7697DBF2", # Peixinhos
@@ -51,12 +51,12 @@ MAPA_API_KEYS = {
 IDS_RECIFE_BATERIA = [3236623, 3236624, 3236625, 3236626, 3236622]
 
 # Lista de sensores que precisam corrigir o valor do HS pelo Field4
-IDS_CORRECAO_HS = [2998477,3215410] # Adicione os próximos IDs separados por vírgula aqui
+IDS_CORRECAO_HS = [2998477,3215410, 2998478, 3215438] # Adicione os próximos IDs separados por vírgula aqui
 
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
-IDS_FORCAR_ZERO_NIVEL = [2998477, 3215407, 3215409, 2998478, 3215411, 3215438, 3222373, 3222372,3222367]
+IDS_FORCAR_ZERO_NIVEL = [3215407, 3215409, 3215411, 3222373, 3222372,3222367, 3236622]
 IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] 
 
 def processar_unico_totem(totem):
