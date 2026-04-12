@@ -16,7 +16,8 @@ MAPA_API_KEYS = {
     3228255: "VNTV6D3PJDIUWTUI", #ihapen petro 
     3212148: "KHWVXJ78F5FUBXEU", # pluviometro petrolina
     3222304: "AZRC6XU0DMPNANK7", # pluviometro olinda
-    2998477: "47FQKQ61NWJTRLWS", # Olinda Caixa d'água
+    3198245: "WVW2O8LMI6JFXXAB", # PE-15
+    2998477: "QP2URUNCRD6AYU8Z", # Olinda Caixa d'água
     2998478: "DEE7HH658UTUCFY8", # Jardim Atlântico
     3215410: "N56C6F6T7697DBF2", # Peixinhos
     3215407: "RAOVQF5WGZYL6Q6W", # Tabajara
@@ -55,7 +56,7 @@ MAPA_API_KEYS = {
 IDS_RECIFE_BATERIA = [3236623, 3236624, 3236625, 3236626, 3236622]
 
 # Lista de sensores que precisam corrigir o valor do HS pelo Field4
-IDS_CORRECAO_HS = [2998477,3215410, 2998478, 3215438] # Adicione os próximos IDs separados por vírgula aqui
+IDS_CORRECAO_HS = [2998477,3215410, 2998478, 3215438,3198245] # Adicione os próximos IDs separados por vírgula aqui
 
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
