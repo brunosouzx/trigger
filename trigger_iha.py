@@ -49,7 +49,9 @@ MAPA_API_KEYS = {
     3222342: "4WS1EL3EPWUHBR23", # Olinda1
     3222341: "M15Z1G9CFD9HB7GD", #Olinda2 
     3222340: "TWUP3BX1I389XPXS", #Paulista1
-    3222339: "3JMHJMUKXUSUH2BF"  #Paulista2
+    3222339: "3JMHJMUKXUSUH2BF", #Paulista2
+    3222344: "EELA67RDERJ3P0LZ", # Cabo de Santo Agostinho - Pluviômetro 1 - Escola Reginaldo Loreto da Silva
+    3222343: "JIS8MZT0SMS1HDEI"  #jaboatão 1
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
