@@ -59,13 +59,13 @@ MAPA_API_KEYS = {
 IDS_RECIFE_BATERIA = [3236623, 3236624, 3236625, 3236626, 3236622]
 
 # Lista de sensores que precisam corrigir o valor do HS pelo Field4
-IDS_CORRECAO_HS = [2998477,3215410, 2998478, 3215438,3198245] # Adicione os próximos IDs separados por vírgula aqui
+IDS_CORRECAO_HS = [2998477,3215410, 2998478, 3215438, 3198245,3215409, 3222373, 3222372, 3222367] # Adicione os próximos IDs separados por vírgula aqui
 
 IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
-IDS_FORCAR_ZERO_NIVEL = [3215407, 3215409, 3215411, 3222373, 3222372,3222367, 3236622]
-IDS_FORCAR_ZERO_PLUVI = [3222305, 3222315, 3222318, 3222317] 
+IDS_FORCAR_ZERO_NIVEL = [3215407, 3215411, 3236622]
+IDS_FORCAR_ZERO_PLUVI = [] 
 
 def processar_unico_totem(totem):
     id_iha, nome_totem = totem
