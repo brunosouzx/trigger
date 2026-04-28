@@ -17,7 +17,7 @@ MAPA_API_KEYS = {
     3212148: "KHWVXJ78F5FUBXEU", # pluviometro petrolina
     3222304: "AZRC6XU0DMPNANK7", # pluviometro olinda
     3198245: "WVW2O8LMI6JFXXAB", # PE-15
-    2998477: "QP2URUNCRD6AYU8Z", # Olinda Caixa d'água
+    3215406: "QP2URUNCRD6AYU8Z", # Olinda Caixa d'água
     2998478: "DEE7HH658UTUCFY8", # Jardim Atlântico
     3215410: "N56C6F6T7697DBF2", # Peixinhos
     3215407: "RAOVQF5WGZYL6Q6W", # Tabajara
@@ -41,7 +41,6 @@ MAPA_API_KEYS = {
     3222317: "7OU79BTK1C24KCVV", # Pluviometro Sao Lourenço 2
     3222375: "QUQ8VV7XEDOC9EPI", # Muribeca Jaboatão
     3222378: "PFZC7PABO03WTLRU", # itamaraca
-    3222377: "QT07N68TVSA6RSOV", # cabo
     3222380: "S7B09IX019DET4CT", # moreno
     3222328: "ZYOXK1D6MMHX6E67", # jaboatao 2
     3222338: "T0Z8H27TN4MWCY62", # jaboatão 3
@@ -52,7 +51,19 @@ MAPA_API_KEYS = {
     3222339: "3JMHJMUKXUSUH2BF", #Paulista2
     3222344: "EELA67RDERJ3P0LZ", # Cabo de Santo Agostinho - Pluviômetro 1 - Escola Reginaldo Loreto da Silva
     3222343: "JIS8MZT0SMS1HDEI", #jaboatão 1
-    3222330: "HQ4J8IZLV7TBXXHH"  #abru e lima ifpe
+    3222330: "HQ4J8IZLV7TBXXHH", #abru e lima ifpe
+    3222379: "Y32QMEDBVMW2JXIT", # ipojuca pen
+    3222320: "FZ61FCQTCA159JF7", # ipojuca1 pep
+    3222325: "U3LSU6VMRYJTENZ9", # ipojuca2 pep
+    3222377: "QT07N68TVSA6RSOV", # cabo
+    3222337: "DDTIOCQ0ARKW3300", # cabo1 pep
+    3222324: "OU00DPA2QJQY19UE", # cabo2 pep
+    3222358: "KQS0VTZYG1JAVY68", # itapissuma1 pep
+    3222334: "ZGMPWDJM78S1KI08", # itapissuma2 pep
+    3222327: "VS4DT1GP9PU7CAHF", # itamaraca1 pep
+    3222331: "1IJJXLP0JHENWQBU", # itamaraca2 pep
+    3222359: "H71LAYTWVWJFSBSO", # igarassu1 pep
+    3222326: "8JNZ2P1SFBGBQ0ZM", # igarassu2 pep
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
@@ -65,7 +76,7 @@ IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 
 # Sensores que devem forçar o valor 0.0 na leitura
 IDS_FORCAR_ZERO_NIVEL = [3215407, 3215411, 3236622]
-IDS_FORCAR_ZERO_PLUVI = [] 
+IDS_FORCAR_ZERO_PLUVI = [3222324] 
 
 def processar_unico_totem(totem):
     id_iha, nome_totem = totem
@@ -82,7 +93,7 @@ def processar_unico_totem(totem):
         return []
 
     # Faz a requisição usando o canal_thingspeak
-    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=6"
+    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=1440"
     dados_extraidos = []
     
     try:
