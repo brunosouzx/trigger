@@ -64,6 +64,9 @@ MAPA_API_KEYS = {
     3222331: "1IJJXLP0JHENWQBU", # itamaraca2 pep
     3222359: "H71LAYTWVWJFSBSO", # igarassu1 pep
     3222326: "8JNZ2P1SFBGBQ0ZM", # igarassu2 pep
+    3222382: "Y2HS75C6E45AIRSL", # Recife nivel rio capibaribe
+    3222338: "T0Z8H27TN4MWCY62", # Recife pluviometro creche municipal criança feliz
+    3222333: "4HKZZP1EPC5R9OWS", # Recife Pluviometro BR-101
 }
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
@@ -93,7 +96,7 @@ def processar_unico_totem(totem):
         return []
 
     # Faz a requisição usando o canal_thingspeak
-    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=1440"
+    url = f"https://api.thingspeak.com/channels/{canal_thingspeak}/feeds.json?api_key={api_key}&results=6"
     dados_extraidos = []
     
     try:
