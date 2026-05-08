@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from token_get import get_tokens
 from trigger_iha import sincronizar_totens
 from trigger_adafruit import sincronizar_adafruit # <-- IMPORTANTE: Importa o Adafruit
+from trigger_apac import sincronizar_medicoes_apac
 
 # Importa o thread para otimizar o codigo
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -217,6 +218,12 @@ def main():
         print(f"\n=== 3.1 SINCRONIZANDO TOTENS (IHA / ADAFRUIT) ===")
         # Executa a função assíncrona do arquivo trigger_adafruit.py
         asyncio.run(sincronizar_adafruit())
+
+        # ==========================================================
+        # 3.2 GATILHO PARA APAC (NOVO)
+        # ==========================================================
+        print(f"\n=== 3.2 SINCRONIZANDO MEDIÇÕES APAC ===")
+        sincronizar_medicoes_apac()
 
         # ==========================================================
         # 4. GATILHO PARA A FUNÇÃO DE STATUS (1x ao dia)
