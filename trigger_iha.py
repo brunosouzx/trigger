@@ -54,7 +54,7 @@ MAPA_API_KEYS = {
     3222330: "HQ4J8IZLV7TBXXHH", #abru e lima ifpe
     3222379: "Y32QMEDBVMW2JXIT", # ipojuca pen
     3222320: "FZ61FCQTCA159JF7", # ipojuca1 pep
-    3222325: "U3LSU6VMRYJTENZ9", # ipojuca2 pep
+    3222325: "U3LSU6VMRYJTENZ9", # ipojuca2 pep camela 
     3222377: "QT07N68TVSA6RSOV", # cabo
     3222337: "DDTIOCQ0ARKW3300", # cabo1 pep
     3222324: "OU00DPA2QJQY19UE", # cabo2 pep
@@ -67,7 +67,9 @@ MAPA_API_KEYS = {
     3222382: "Y2HS75C6E45AIRSL", # Recife nivel rio capibaribe
     3222338: "T0Z8H27TN4MWCY62", # Recife pluviometro creche municipal criança feliz
     3222333: "4HKZZP1EPC5R9OWS", # Recife Pluviometro BR-101
-}
+    3222388: "Q7OYE1ROTJFEYNCC", # Jaboatão cavaleiro pen
+    3222383: "ZVA1R9YIXBW1OXR0", # abreu e lima pen
+} 
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
 IDS_RECIFE_BATERIA = [3236623, 3236624, 3236625, 3236626, 3236622]
@@ -80,6 +82,13 @@ IDS_HS_COM_DEFEITO = [] # Sapucaia removido daqui
 # Sensores que devem forçar o valor 0.0 na leitura
 IDS_FORCAR_ZERO_NIVEL = [3215407, 3215411, 3236622]
 IDS_FORCAR_ZERO_PLUVI = [3222324] 
+
+# Dicionário para pluviômetros com calibração fora do padrão (ID: valor_por_basculada)
+CALIBRACAO_ESPECIAL_PLUVIOMETRO = {
+    
+    3222339: 0.159, 
+    
+}
 
 def processar_unico_totem(totem):
     id_iha, nome_totem = totem
@@ -122,7 +131,10 @@ def processar_unico_totem(totem):
                     dados_extraidos.append((id_iha, 'pluviometro', 0.0, data_hora_brasil))
                 elif feed.get('field4'):
                     try: 
-                        valor = float(feed['field4']) * 0.2
+                        # Busca o valor especial, se não encontrar, usa 0.2
+                        fator_calibracao = CALIBRACAO_ESPECIAL_PLUVIOMETRO.get(id_iha, 0.2)
+                        
+                        valor = float(feed['field4']) * fator_calibracao
                         valor = max(0.0, valor)
                         dados_extraidos.append((id_iha, 'pluviometro', round(valor, 2), data_hora_brasil))
                     except ValueError: pass
@@ -136,7 +148,10 @@ def processar_unico_totem(totem):
                         if basculadas > 0:
                             basculadas = max(0.0, basculadas - 2.0)
                         
-                        valor = basculadas * 0.2
+                        # Busca o valor especial, se não encontrar, usa 0.2
+                        fator_calibracao = CALIBRACAO_ESPECIAL_PLUVIOMETRO.get(id_iha, 0.2)
+                        
+                        valor = basculadas * fator_calibracao
                         valor = max(0.0, valor)
                         dados_extraidos.append((id_iha, 'pluviometro', round(valor, 2), data_hora_brasil))
                     except ValueError: pass
