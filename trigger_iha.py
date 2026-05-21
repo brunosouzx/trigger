@@ -69,6 +69,7 @@ MAPA_API_KEYS = {
     3222333: "4HKZZP1EPC5R9OWS", # Recife Pluviometro BR-101
     3222388: "Q7OYE1ROTJFEYNCC", # Jaboatão cavaleiro pen
     3222383: "ZVA1R9YIXBW1OXR0", # abreu e lima pen
+    3358313: "B57HMT239KGYUUNJ", # SEPDEC RECIFE
 } 
 
 # --- LISTAS DE REGRAS DE NEGÓCIO ---
