@@ -29,9 +29,16 @@ FUSO_BR = timezone(timedelta(hours=-3))
 
 # Mapeamento para a tabela de 'medicao' (Sensores de Estado)
 SENSOR_MAPPING = {
-    10: "pluviometria", 330: "nivel_1", 340: "nivel_2",
+    10: "pluviometria",20: "nivel", 330: "nivel_1", 340: "nivel_2",
     350: "nivel_3", 360: "nivel_4", 610: "nivel_5", 620: "nivel_6",
 }
+
+def buscar_codigos_estacoes(conn):
+    """Busca os códigos de todas as estações do Cemaden cadastradas na base."""
+    with conn.cursor() as cur:
+        # Verifique se o nome da coluna é 'codestacao' ou 'id' na sua tabela cemadem_estacao
+        cur.execute("SELECT codestacao FROM cemadem_estacao")
+        return {row[0] for row in cur.fetchall()} # Retorna um Set para busca super rápida
 
 def buscar_ids_cidades(conn):
     """Busca os IDs das cidades (que são os códigos IBGE)."""
@@ -39,27 +46,44 @@ def buscar_ids_cidades(conn):
         cur.execute("SELECT id FROM cidades")
         return [row[0] for row in cur.fetchall()]
 
-def processar_dados_estado(raw_data):
-    """Processa dados do endpoint de Estado (medicao)."""
+def processar_dados_estado(raw_data, estacoes_cadastradas):
+    """Processa dados do endpoint de Estado (medicao) e separa as ignoradas."""
     dados_para_inserir = []
+    estacoes_ignoradas = set() # Set garante que não printaremos o mesmo código 10 vezes
+    
     for medicao in raw_data:
         try:
+            cod = medicao.get('codestacao')
+            
+            # Se não vier código, apenas pula
+            if not cod: continue
+            
+            # FILTRO: Se não estiver cadastrada, guarda na lista de ignoradas e pula
+            if cod not in estacoes_cadastradas: 
+                estacoes_ignoradas.add(cod)
+                continue
+                
             sensor_id = medicao.get('id_sensor')
             tipo = SENSOR_MAPPING.get(sensor_id)
+            
+            if str(cod).upper().endswith('H'):
+                tipo = "nivel"
+                
             if not tipo: continue
             
-            cod = medicao.get('codestacao')
             val = medicao.get('valor')
             d_str = medicao.get('datahora')
             
-            if not cod or val is None or not d_str: continue
+            if val is None or not d_str: continue
 
             dt_utc = parser.parse(d_str).replace(tzinfo=timezone.utc)
             dt_br = dt_utc.astimezone(FUSO_BR)
             
             dados_para_inserir.append((cod, tipo, val, dt_br))
         except: continue
-    return dados_para_inserir
+        
+    # Retorna duas coisas agora: os dados bons e a lista das ignoradas
+    return dados_para_inserir, list(estacoes_ignoradas)
 
 def inserir_estado(conn, dados):
     if not dados: return
@@ -126,23 +150,36 @@ def main():
         token_ativo = tokens[idx_token]
 
         print(f"\n=== 1. PROCESSANDO DADOS GERAIS DO ESTADO (PE) ===")
-        # -----------------------------------------------------------
-        # Faz 1 requisição para pegar o estado todo
-        # -----------------------------------------------------------
         try:
+            estacoes_validas = buscar_codigos_estacoes(conn)
+            
             h = {'accept': 'application/json', 'token': token_ativo}
             p = {'rede': '11', 'uf': 'PE'}
             
             resp = requests.get(API_ESTADO, headers=h, params=p, timeout=15)
-            reqs_atuais += 1 # CONTA +1 REQUISIÇÃO
+            reqs_atuais += 1 
             
             if resp.status_code == 200:
-                dados_proc = processar_dados_estado(resp.json())
+                # Captura as duas variáveis do retorno
+                dados_proc, ignoradas = processar_dados_estado(resp.json(), estacoes_validas)
+                
+                # Executa a inserção normal
                 inserir_estado(conn, dados_proc)
+                
+                # LOG DAS ESTAÇÕES IGNORADAS
+                if ignoradas:
+                    print(f" [AVISO] {len(ignoradas)} estações vieram na API mas NÃO estão no banco:")
+                    # Cria uma string separada por vírgula para não poluir muito a tela
+                    print(f" -> Códigos: {', '.join(map(str, ignoradas))}")
+                else:
+                    print(" [ESTADO] Todas as estações enviadas pela API já constam no banco de dados.")
+                    
             else:
                 print(f"Erro Estado: {resp.status_code}")
         except Exception as e:
             print(f"Erro Req Estado: {e}")
+            if conn:
+                conn.rollback()
 
         
         print(f"\n=== 2. PROCESSANDO ACUMULADOS POR CIDADE ===")
