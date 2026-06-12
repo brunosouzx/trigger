@@ -71,7 +71,14 @@ def processar_dados_estado(raw_data, estacoes_cadastradas):
                 
             if not tipo: continue
             
-            val = medicao.get('valor')
+            if tipo == "nivel": 
+                try:
+                    val = medicao.get('offset') - medicao.get('valor')
+                except:
+                    val = medicao.get('valor', 0)
+            else:
+                val = medicao.get('valor')
+
             d_str = medicao.get('datahora')
             
             if val is None or not d_str: continue
