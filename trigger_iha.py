@@ -13,8 +13,8 @@ TABLE_DESTINO = 'medicao_iha'
 
 # --- CONFIGURAÇÃO DE CHANNELS E REGRAS ---
 MAPA_API_KEYS = {
-    3228255: "VNTV6D3PJDIUWTUI", #ihapen petro 
-    3212148: "KHWVXJ78F5FUBXEU", # pluviometro petrolina
+    3443221: "JCP8RU9VCF6LFF58", #ihapen petro 
+    3443217: "RN87QOUNU42WM00P", # pluviometro petrolina
     3222304: "AZRC6XU0DMPNANK7", # pluviometro olinda
     3198245: "WVW2O8LMI6JFXXAB", # PE-15
     3215406: "QP2URUNCRD6AYU8Z", # Olinda Caixa d'água
